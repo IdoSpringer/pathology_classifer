@@ -9,7 +9,9 @@ import numpy as np
 import torch.autograd as autograd
 from sklearn.metrics import roc_auc_score, roc_curve
 from sklearn.model_selection import train_test_split
-from models import PathologyClassifier
+from imblearn.over_sampling import SMOTE
+from TCR_Autoencoder.tcr_autoencoder import PaddingAutoencoder
+from models import MLP
 
 
 m = 'McPAS-TCR.csv'
@@ -50,14 +52,6 @@ def get_lists_from_pairs(csv_file, max_len, class_limit):
     return pruned_tcrs, pruned_pathologies
 
 
-def class_weights(pathologies):
-    p_set = set(pathologies)
-    count_dict = {p: pathologies.count(p) for p in p_set}
-    print(count_dict)
-    count_dict = {p: pathologies.count(p) / len(pathologies) for p in p_set}
-    print(count_dict)
-
-
 def convert_data(tcrs, tcr_atox, max_len):
     for i in range(len(tcrs)):
         tcrs[i] = pad_tcr(tcrs[i], tcr_atox, max_len)
@@ -71,11 +65,34 @@ def pad_tcr(tcr, amino_to_ix, max_length):
         padding[i][amino_to_ix[amino]] = 1
     return padding
 
+'''
+def encode_tcrs(tcrs, params, args)
+    max_length = params['max_len']
+    batch_size = params['batch_size']
+    # Load autoencoder
+    autoencoder = PaddingAutoencoder(max_length, 21, params['enc_dim'])
+    checkpoint = torch.load(args['ae_file'])
+    autoencoder.load_state_dict(checkpoint['model_state_dict'])
+    for param in autoencoder.parameters():
+        param.requires_grad = False
+    autoencoder.eval()
+    pass
+'''
 
-def get_batches(tcrs, tcr_atox, pathologies, batch_size, max_length, class_limit):
+
+def get_batches(tcrs, tcr_atox, pathologies, params, args):
     """
     Get batches from the data
     """
+    max_length = params['max_len']
+    batch_size = params['batch_size']
+    # Load autoencoder
+    autoencoder = PaddingAutoencoder(max_length, 21, params['enc_dim'])
+    checkpoint = torch.load(args['ae_file'])
+    autoencoder.load_state_dict(checkpoint['model_state_dict'])
+    for param in autoencoder.parameters():
+        param.requires_grad = False
+    autoencoder.eval()
     # Shuffle
     z = list(zip(tcrs, pathologies))
     shuffle(z)
@@ -94,10 +111,13 @@ def get_batches(tcrs, tcr_atox, pathologies, batch_size, max_length, class_limit
         tcr_tensor = torch.zeros((batch_size, max_length, 21))
         for i in range(batch_size):
             tcr_tensor[i] = batch_tcrs[i]
+        concat = tcr_tensor.view(batch_size, max_length * 21)
+        encoded_tcrs = autoencoder.encoder(concat)
         batch_pathologies = pathologies[index:index + batch_size]
-        batches.append((tcr_tensor, batch_pathologies))
+        batches.append((encoded_tcrs, batch_pathologies))
         # Update index
         index += batch_size
+    '''
     # pad data in last batch
     missing = batch_size - len(tcrs) + index
     padding_tcrs = ['X'] * missing
@@ -111,32 +131,54 @@ def get_batches(tcrs, tcr_atox, pathologies, batch_size, max_length, class_limit
     batches.append((tcr_tensor, batch_pathologies))
     # Update index
     index += batch_size
+    '''
     # Return list of all batches
     return batches
 
 
-def train_epoch(batches, model, loss_function, optimizer, device):
-    model.train()
-    shuffle(batches)
-    total_loss = 0
+def read_batches(batches):
+    tcrs = []
+    pathologies = []
     for batch in batches:
-        tcrs, pathologies = batch
+        encoded_tcrs, batch_pathologies = batch
+        for tcr in encoded_tcrs:
+            tcrs.append(tcr.numpy())
+        pathologies.extend(batch_pathologies)
+    tcrs = np.array(tcrs)
+    return tcrs, pathologies
+
+
+def train_epoch(train_tcrs, train_pathologies, model, loss_function, optimizer, device):
+    model.train()
+    z = list(zip(train_tcrs, train_pathologies))
+    shuffle(z)
+    train_tcrs, train_pathologies = zip(*z)
+    '''
+    index = 0
+    batches = []
+    while index < len(train_tcrs):
+        batches.append((train_tcrs[index:index+]))
+    '''
+    total_loss = 0
+    for tcr, pathology in zip(train_tcrs, train_pathologies):
         # Move to GPU
-        tcrs = tcrs.to(device)
-        pathologies = torch.LongTensor(pathologies).to(device)
+        tcr = torch.tensor(tcr).to(device)
+        pathology = torch.tensor(pathology).view(1).to(device)
         model.zero_grad()
-        probs = model(tcrs)
+        probs = model(tcr).view(1, -1)
         # Compute loss
-        loss = loss_function(probs, pathologies)
+        loss = loss_function(probs, pathology)
+        # print(loss.item())
         # Update model weights
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
     # Return average loss
-    return total_loss / len(batches)
+    return total_loss / len(train_tcrs)
 
 
-def train_model(batches, test_batches, device, args, params):
+def train_model(train_tcrs, train_pathologies, test_tcrs, test_pathologies,
+                device, args, params):
     """
     Train and evaluate the model
     """
@@ -144,8 +186,7 @@ def train_model(batches, test_batches, device, args, params):
     # We use Cross-Entropy loss
     loss_function = nn.CrossEntropyLoss()
     # Set model with relevant parameters
-    model = PathologyClassifier(params['emb_dim'], device, params['max_len'], 21, params['enc_dim'],
-                                params['out_dim'] + 1, params['batch_size'], args['ae_file'], train_ae=True)
+    model = MLP(params['enc_dim'], params['out_dim'], device)
     # Move to GPU
     model.to(device)
     # We use Adam optimizer
@@ -154,34 +195,30 @@ def train_model(batches, test_batches, device, args, params):
     for epoch in range(params['epochs']):
         print('epoch:', epoch + 1)
         # Train model and get loss
-        loss = train_epoch(batches, model, loss_function, optimizer, device)
+        loss = train_epoch(train_tcrs, train_pathologies, model, loss_function, optimizer, device)
         losses.append(loss)
         # evaluate
-        acc = evaluate(model, batches, device)
+        acc = evaluate(model, train_tcrs, train_pathologies, device)
         print('train accuracy:', acc)
-        acc = evaluate(model, test_batches, device)
+        acc = evaluate(model, test_tcrs, test_pathologies, device)
         print('test accuracy:', acc)
-
     return model
 
 
-def evaluate(model, batches, device):
+def evaluate(model, tcrs, pathologies, device):
     model.eval()
     accuracy = 0
     samples = 0
-    shuffle(batches)
-    for batch in batches:
-        tcrs, pathologies = batch
+    for tcr, pathology in zip(tcrs, pathologies):
         # Move to GPU
-        tcrs = torch.tensor(tcrs).to(device)
-        pathologies = torch.LongTensor(pathologies).to(device)
-        probs = model(tcrs)
-        pred = torch.argmax(probs, dim=1)
-        hits = pred == pathologies
-        samples += len(hits)
-        accuracy += int(sum(hits))
-    # Return accuracy
-    return accuracy / samples
+        tcr = torch.tensor(tcr).to(device)
+        probs = model(tcr)
+        pred = torch.argmax(probs)
+        print(pred.item())
+        if pred.item() == pathology:
+            accuracy += 1
+    accuracy /= len(tcrs)
+    return accuracy
 
 
 def main(argv):
@@ -208,19 +245,21 @@ def main(argv):
     checkpoint = torch.load(args['ae_file'])
     params['max_len'] = checkpoint['max_len']
     params['batch_size'] = checkpoint['batch_size']
-
     # Load data
     csv_file = 'McPAS-TCR.csv'
     tcrs, pathologies = get_lists_from_pairs(csv_file, params['max_len'], class_limit)
-    train_tcrs, test_tcrs, train_pathologies, test_pathologies = train_test_split(tcrs, pathologies, test_size = 0.2)
-    # class_weights(pathologies)
-    # train
-    train_batches = get_batches(train_tcrs, tcr_atox, train_pathologies, params['batch_size'], params['max_len'], class_limit)
+    train_tcrs, test_tcrs, train_pathologies, test_pathologies = train_test_split(tcrs, pathologies, test_size=0.2)
+    # train with smote
+    train_batches = get_batches(train_tcrs, tcr_atox, train_pathologies, params, args)
+    train_tcrs, train_pathologies = read_batches(train_batches)
+    smt = SMOTE()
+    train_tcrs, train_pathologies = smt.fit_sample(train_tcrs, train_pathologies)
     # test
-    test_batches = get_batches(test_tcrs, tcr_atox, test_pathologies, params['batch_size'], params['max_len'], class_limit)
-
+    test_batches = get_batches(test_tcrs, tcr_atox, test_pathologies, params, args)
+    test_tcrs, test_pathologies = read_batches(test_batches)
     # Train the model
-    model = train_model(train_batches, test_batches, device, args, params)
+    model = train_model(train_tcrs, train_pathologies, test_tcrs, test_pathologies,
+                        device, args, params)
     pass
 
 

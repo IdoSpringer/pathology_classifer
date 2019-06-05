@@ -20,4 +20,29 @@ test (20%) | 0.49 | 0.48
 :grimacing:
 
 Since the data is imbalanced, we plan to use over-sampling methods for the minority classes,
-such as SMOTE. 
+such as SMOTE.
+
+## 5.6.19
+
+We used SMOTE for creating synthetic examples of the minority classes.
+First, we use the TCR-autoencoder in order to extract encoding vector for all examples.
+Next, we use SMOTE to equal the number of samples in all classes.
+(SMOTE is used only for the train set).
+The expanded trained data is fed to a simple MLP model with one hidden layer.
+
+**Current performance:**
+On 10 classes,
+
+dataset| accuracy (15 epochs)
+--- | --- | ---
+train (80%) | 0.54
+test (20%) | 0.30
+
+:frowning_face:	
+
+It is worse than before because it is a simple MLP model without autoencoder extra training.
+In addition the model is very slow because we did not added batching yet.
+It seems like the SMOTE caused overfitting.
+
+Next, we will try building a model which will also train the autoencoder.
+We also would like to use automatic hyperparameters tuning. 
