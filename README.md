@@ -33,8 +33,8 @@ The expanded trained data is fed to a simple MLP model with one hidden layer.
 **Current performance:**
 On 10 classes,
 
-dataset| accuracy (15 epochs)
---- | --- | ---
+dataset | accuracy (15 epochs)
+--- | ---
 train (80%) | 0.54
 test (20%) | 0.30
 
