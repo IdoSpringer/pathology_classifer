@@ -11,12 +11,8 @@ from sklearn.metrics import roc_auc_score, roc_curve
 from sklearn.model_selection import train_test_split
 from imblearn.over_sampling import SMOTE
 from TCR_Autoencoder.tcr_autoencoder import PaddingAutoencoder
-from models import MLP
-import autosklearn.classification
 import sklearn.metrics
-import os
-os.environ["JOBLIB_TEMP_FOLDER"] = "/tmp"
-
+from sklearn.neighbors import KNeighborsClassifier
 m = 'McPAS-TCR.csv'
 
 
@@ -266,11 +262,10 @@ def main(argv):
     model = train_model(train_tcrs, train_pathologies, test_tcrs, test_pathologies,
                         device, args, params)
     '''
-    automl = autosklearn.classification.AutoSklearnClassifier()
-    automl.fit(train_tcrs, train_pathologies)
-
-    y_hat_train = automl.predict(train_tcrs)
-    y_hat_test = automl.predict(test_tcrs)
+    neigh = KNeighborsClassifier(n_neighbors=5)
+    neigh.fit(train_tcrs, train_pathologies)
+    y_hat_train = neigh.predict(train_tcrs)
+    y_hat_test = neigh.predict(test_tcrs)
     print("Train accuracy:", sklearn.metrics.accuracy_score(train_pathologies, y_hat_train))
     print("Test accuracy:", sklearn.metrics.accuracy_score(test_pathologies, y_hat_test))
     pass
