@@ -51,7 +51,21 @@ We also would like to use automatic hyperparameters tuning.
 ### AutoML
 We used the auto-sklearn package to find the best model for the classification problem.
 We run an AutoML process on the training data with and without SMOTE over-sampling.
-Currently it does not outperform random classification.
+The prediction is an output of an ensemble of models,
+currently I did not figure out how to read what models were used.
+
+**Current performance:**
+On 10 classes,
+
+dataset | sampling | accuracy
+--- | --- | ---
+train (80%) | with train SMOTE |0.97
+test (20%) | with train SMOTE |0.43
+train (80%) | without train SMOTE |0.83
+test (20%) | without train SMOTE |0.51
+
+:four_leaf_clover:
+
 
 ### K-Nearest Neighbors
 In addition, in order to see if clustering algorithms are relevant for this data,
