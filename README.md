@@ -117,17 +117,17 @@ and used over_sampling with SMOTE.
 over-sampling| algorithm | label | number of classes | train accuracy | test accuracy
 --- | --- | --- | --- | --- | ---
 SMOTE (on train)| KNN (k=5) | pathology | 10 | 0.83 | 0.12
-- | KNN (k=5) | pathology | 10 | 0.45 | 0.32
+no over-sampling | KNN (k=5) | pathology | 10 | 0.45 | 0.32
 SMOTE (on train)| KNN (k=5) | category | 5 | 0.86 | 0.32
--| KNN (k=5) | category | 5 | **0.73** | **0.70**
+no over-sampling| KNN (k=5) | category | 5 | **0.73** | **0.70**
 SMOTE (on train)| KNN (k=5) | protein | 10 | 0.72 | 0.09
--| KNN (k=5) | protein | 10 | 0.37 | 0.20
+no over-sampling| KNN (k=5) | protein | 10 | 0.37 | 0.20
 SMOTE (on train)| AutoML | pathology | 10 | 0.87 | 0.14
-- | AutoML | pathology | 10 | 0.39 | 0.39
+no over-sampling| AutoML | pathology | 10 | 0.39 | 0.39
 SMOTE (on train)| AutoML | category | 5 | 0.91 | 0.46
--| AutoML | category | 5 | **0.72** | **0.72**
+no over-sampling| AutoML | category | 5 | **0.72** | **0.72**
 SMOTE (on train)| AutoML | protein | 10 | 0.83 | 0.13
--| AutoML | protein | 10 | 0.23 | 0.22
+no over-sampling| AutoML | protein | 10 | 0.23 | 0.22
 
 :whale:
 
