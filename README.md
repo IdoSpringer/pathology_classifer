@@ -98,10 +98,18 @@ test (20%) | 7 |0.50
 
 ### Other classifications
 We extended the code to include other types of classification.
-We would like to distinguish also between pathology-categories and antigen proteins.
+Given the encoded TCR vector,
+we would like to distinguish also between pathology-categories and antigen proteins.
 (We believe it can get better results).
 
 ## 17.6.19
+
+### Other classifications results
+We tried several classification configurations,
+when we can classify pathology, pathology-category or antigen protein.
+We used KNN and AutoML for training
+(for comparision, assuming AutoML will get the best result),
+and used over_sampling with SMOTE.
 
 
 **Current performance:**
@@ -111,16 +119,17 @@ over-sampling| algorithm | label | number of classes | train accuracy | test acc
 SMOTE (on train)| KNN (k=5) | pathology | 10 | 0.83 | 0.12
 - | KNN (k=5) | pathology | 10 | 0.45 | 0.32
 SMOTE (on train)| KNN (k=5) | category | 5 | 0.86 | 0.32
--| KNN (k=5) | category | 5 | 0.73 | 0.70
+-| KNN (k=5) | category | 5 | **0.73** | **0.70**
 SMOTE (on train)| KNN (k=5) | protein | 10 | 0.72 | 0.09
 -| KNN (k=5) | protein | 10 | 0.37 | 0.20
-SMOTE (on train)| AutoML | pathology | 10 | nohup2
-- | AutoML | pathology | 10 | nohup1
-SMOTE (on train)| AutoML | category | 5 | nohup3
--| AutoML | category | 5 | nohup4
-SMOTE (on train)| AutoML | protein | 10 | nohup5
--| AutoML | protein | 10 | nohup6
--| MLP | | | 0. | 0.
+SMOTE (on train)| AutoML | pathology | 10 | 0.87 | 0.14
+- | AutoML | pathology | 10 | 0.39 | 0.39
+SMOTE (on train)| AutoML | category | 5 | 0.91 | 0.46
+-| AutoML | category | 5 | **0.72** | **0.72**
+SMOTE (on train)| AutoML | protein | 10 | 0.83 | 0.13
+-| AutoML | protein | 10 | 0.23 | 0.22
+
+:whale:
 
 Clearly, over-sampling with SMOTE hurts the classification.
 The best classification is for pathology-category.
