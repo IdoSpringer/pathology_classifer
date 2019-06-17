@@ -1,3 +1,9 @@
+## TO-DO
+
+- [x] Write code for data loading with different labels and features 
+- [ ] Adjust code for dealing with different models (MLP/Smote/AutoML)
+- [ ] Add V and J genes to autoencoder (as features with PCA)
+
 # Reports
 
 ## 4.6.19
@@ -87,3 +93,34 @@ train (80%) | 7 |0.58
 test (20%) | 7 |0.50
 
 :open_mouth:
+
+## 16.6.19
+
+### Other classifications
+We extended the code to include other types of classification.
+We would like to distinguish also between pathology-categories and antigen proteins.
+(We believe it can get better results).
+
+## 17.6.19
+
+
+**Current performance:**
+
+over-sampling| algorithm | label | number of classes | train accuracy | test accuracy
+--- | --- | --- | --- | --- | ---
+SMOTE (on train)| KNN (k=5) | pathology | 10 | 0.83 | 0.12
+- | KNN (k=5) | pathology | 10 | 0.45 | 0.32
+SMOTE (on train)| KNN (k=5) | category | 5 | 0.86 | 0.32
+-| KNN (k=5) | category | 5 | 0.73 | 0.70
+SMOTE (on train)| KNN (k=5) | protein | 10 | 0.72 | 0.09
+-| KNN (k=5) | protein | 10 | 0.37 | 0.20
+SMOTE (on train)| AutoML | pathology | 10 | nohup2
+- | AutoML | pathology | 10 | nohup1
+SMOTE (on train)| AutoML | category | 5 | nohup3
+-| AutoML | category | 5 | nohup4
+SMOTE (on train)| AutoML | protein | 10 | nohup5
+-| AutoML | protein | 10 | nohup6
+-| MLP | | | 0. | 0.
+
+Clearly, over-sampling with SMOTE hurts the classification.
+The best classification is for pathology-category.
